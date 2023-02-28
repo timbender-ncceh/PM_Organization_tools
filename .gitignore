@@ -11,6 +11,9 @@
 # Example code in package build process
 *-Ex.R
 
+# Google Calendar URLS stored in script
+secret_ical_url.R
+
 # Output files from R CMD build
 /*.tar.gz
 
