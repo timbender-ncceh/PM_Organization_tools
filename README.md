@@ -1,4 +1,4 @@
-# PM_Organization_toit will overwrite the excel file with a new file, omitting all records that have been verified as having been not just exported to an .ics file but that verified that ics file was imported to google previously.  
+# README: PM_Organization_tool
 
 A set of R scripts that will allow you to add items to your google calendar via an ical import.  The ical (actually .ics) file is generated from a linked excel spreadsheet that has 14 fields but, really only corresponds to Start_time, End_time, Event_title, and Event_description.  
 
