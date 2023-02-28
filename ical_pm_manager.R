@@ -11,6 +11,38 @@ library(openxlsx)
 rm(list=ls());cat('\f')
 
 # funs----
+get.MTG.mgts <- function(a.date = Sys.Date(), 
+                         mtg_list = mtg.ical.list){
+  require(lubridate)
+  which_mtg_on_date <- NULL
+  for(i in 1:length(mtg_list)){
+    try(temp.start <- mtg_list[[i]] %>%
+          grep(pattern = "^DTSTART", x = ., value = T) %>%
+          gsub(pattern = "^DTSTART:", "", x = .) %>%
+          ymd_hms(., tz = Sys.timezone()))
+    try(temp.end <- mtg_list[[i]] %>%
+          grep(pattern = "^DTEND", x = ., value = T) %>%
+          gsub(pattern = "^DTEND:", "", x = .) %>%
+          ymd_hms(., tz = Sys.timezone()))
+    
+    out <- F
+    try(out <- a.date == as_date(temp.start) & 
+          a.date == as_date(temp.end))
+    
+    which_mtg_on_date <- c(which_mtg_on_date, 
+                           out) 
+    rm(out, temp.start, temp.end)
+    
+  }
+  
+  which_mtg_on_date <- which(which_mtg_on_date)
+  
+  # return the data
+  out <- mtg_list[which_mtg_on_date]
+  out <- ical_list2df(out) %>% as_tibble()
+  
+  return(out)
+}
 ical_list2df <- function(ic_list){
   require(lubridate)
   out.df <- NULL
@@ -141,6 +173,7 @@ cal.input$End1 <- paste(cal.input$end1_year, "-",
                           sep = "")%>%
   ymd_hm(., tz = Sys.timezone())
 
+cal.input$Desc <- as.character(cal.input$Desc)
 
 # cal.input$in_PM_cal <- as.logical(cal.input$in_PM_cal)
 # cal.input$Add_to_PM_cal <- as.logical(cal.input$Add_to_PM_cal)
@@ -173,7 +206,12 @@ cal.input
 pm.ical.list <- calendar::ic_list(x = readLines("tim_PM_calendar.ics"))
 mtg.ical.list <- calendar::ic_list(x = readLines("tim_MTG_calendar.ics"))
 
-pm.ical.df <- ical_list2df(pm.ical.list) %>% as_tibble()
+pm.ical.df        <- ical_list2df(pm.ical.list) %>% as_tibble()
+mtg.ical.df.today <- get.MTG.mgts(a.date = Sys.Date())
+
+pm.ical.df <- rbind(pm.ical.df, 
+                    mtg.ical.df.today)
+
 pm.xlsx.df <- cal.input[,c("Event_Title", "Desc", "Start1", "End1")] %>%
   mutate(., 
          from_xlsx = T) %>% 
@@ -200,6 +238,11 @@ cal.input <- left_join(cal.input,
          already_in_cal = ifelse(is.na(already_in_cal), F, already_in_cal)) %>%
   .[!.$already_in_cal,] %>% 
   .[!colnames(.) %in% c("already_in_cal")]
+
+# pull in meetings from specific day of MTG calendar
+
+
+
 
 
 
