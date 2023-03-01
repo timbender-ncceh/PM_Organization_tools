@@ -157,7 +157,21 @@ download.file(url = secret.ical.url_PM,
 cal.input <- openxlsx::read.xlsx(cal.input.link) %>%
   as_tibble()
 
-# tidy
+# tidy----
+
+# if is.na(year){ assume  year == year(today)}
+cal.input$start1_year[is.na(cal.input$start1_year)] <- year(Sys.Date())
+cal.input$end1_year[is.na(cal.input$end1_year)] <- year(Sys.Date())
+
+# if is.na(month){ assume  month == month(today)}
+cal.input$start1_month[is.na(cal.input$start1_month)] <- lubridate::month(Sys.Date())
+cal.input$end1_month[is.na(cal.input$end1_month)] <- lubridate::month(Sys.Date())
+
+# if is.na(mday){ assume  mday == mday(today)}
+cal.input$start1_mday[is.na(cal.input$start1_mday)] <- lubridate::mday(Sys.Date())
+cal.input$end1_mday[is.na(cal.input$end1_mday)] <- lubridate::mday(Sys.Date())
+
+
 cal.input$Start1 <- paste(cal.input$start1_year, "-",
                           unlist(lapply(X = cal.input$start1_month, FUN = lead0)), "-",
                           unlist(lapply(X = cal.input$start1_mday, FUN = lead0)), " ", 
