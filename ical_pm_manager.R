@@ -5,65 +5,12 @@ library(ggplot2)
 library(uuid)
 library(glue)
 library(openxlsx)
-library(data.table)
 
 # https://cran.rstudio.com/web/packages/calendar/calendar.pdf
 
-rm(list=ls());cat('\f');gc()
+rm(list=ls());cat('\f')
 
-
-
-# VARS/MISC----
-
-near_term <- Sys.Date() %m+% weeks(2)
-
-wd.calendar    <- "C:/Users/TimBender/Documents/R/ncceh/calendars"
-wd.home        <- "C:/Users/TimBender/Documents/R/ncceh"
-cal.excel.link <- "tim_cal_input.xlsx"
-
-# set wd----
-setwd(wd.calendar)
-
-# Load secret calendar vars----
-source("secret_ical_url.R")
-
-# Functions----
-df_sum.start.end <- function(list1 = mtg.ical.list){
-  df.out <- NULL
-  
-  for(i in 1:length(list1)){
-    temp.summary <- grep(pattern = "^SUMMARY", list1[[i]], value = T)
-    if(length(temp.summary) == 0){temp.summary <- NA}
-    temp.start <- grep(pattern = "^DTSTART", list1[[i]], value = T)
-    if(length(temp.start) == 0){temp.start <- NA}
-    temp.end <- grep(pattern = "^DTEND", list1[[i]], value = T)
-    if(length(temp.end) == 0){temp.end <- NA}
-    
-    df.out <- rbind(df.out, 
-                    data.frame(rid = i, 
-                               summary = temp.summary, 
-                               start = temp.start, 
-                               end = temp.end))
-    
-    rm(temp.summary, temp.start, temp.end)
-  }
-  
-  df.out$start_date     <- gsub(pattern = "^DTSTART;TZID=America/New_York:|^DTSTART:|^DTSTART;VALUE=DATE:", 
-                                replacement = "", x = df.out$start) %>% as_date()
-  df.out$start_datetime <- gsub(pattern = "^DTSTART;TZID=America/New_York:|^DTSTART:|^DTSTART;VALUE=DATE:", 
-                                replacement = "", x = df.out$start) %>% as_datetime(., tz = Sys.timezone())
-  df.out$end_date       <- gsub(pattern = "^DTEND;TZID=America/New_York:|^DTEND:|^DTEND;VALUE=DATE:", 
-                                replacement = "", x = df.out$end) %>% as_date()
-  df.out$end_datetime   <- gsub(pattern = "^DTEND;TZID=America/New_York:|^DTEND:|^DTEND;VALUE=DATE:", 
-                                replacement = "", x = df.out$end) %>% as_datetime(., tz = Sys.timezone())
-  
-  df.out$summary <- df.out$summary %>%
-    gsub("^SUMMARY:", "", .)
-  
-  df.out <- df.out[,c("rid", "summary", "start_date", "start_datetime", "end_date", "end_datetime")]
-  
-  return(as_tibble(df.out))
-}
+# funs----
 get.MTG.mgts <- function(a.date = Sys.Date(), 
                          mtg_list = mtg.ical.list){
   require(lubridate)
@@ -191,61 +138,78 @@ gen_ical.event <- function(event_title,desc = NA,
   return(out)
 }
 
-# Import/Tidy Meeting_Calendar----
+# set calendar wd
+setwd("C:/Users/TimBender/Documents/R/ncceh/calendars")
+
+# Vars----
+cal.input.link <- "tim_cal_input.xlsx"
+
+# Import Data----
+# get secret google calendar urls
+source("secret_ical_url.R")
+
 download.file(url = secret.ical.url_MTG, 
               destfile = "tim_MTG_calendar.ics")
-
-
-# Import/Tidy PM_Calendar----
 download.file(url = secret.ical.url_PM, 
               destfile = "tim_PM_calendar.ics")
 
-# Import/Tidy Excel_File of New PM Calendar items----
-cal.excel.link <- openxlsx::read.xlsx(cal.excel.link) %>% as_tibble()
+# load spreadsheet of calendar changes
+cal.input <- openxlsx::read.xlsx(cal.input.link) %>%
+  as_tibble()
 
-
-# AM/PM check
-cal.excel.link$start1_hr[cal.excel.link$start1_hr %in% c(1:5)] <- cal.excel.link$start1_hr[cal.excel.link$start1_hr %in% c(1:5)] + 12
-cal.excel.link$end1_hr[cal.excel.link$end1_hr %in% c(1:5)] <- cal.excel.link$end1_hr[cal.excel.link$end1_hr %in% c(1:5)] + 12
+# tidy----
 
 # if is.na(year){ assume  year == year(today)}
-cal.excel.link$start1_year[is.na(cal.excel.link$start1_year)] <- year(Sys.Date())
-cal.excel.link$end1_year[is.na(cal.excel.link$end1_year)] <- year(Sys.Date())
+cal.input$start1_year[is.na(cal.input$start1_year)] <- year(Sys.Date())
+cal.input$end1_year[is.na(cal.input$end1_year)] <- year(Sys.Date())
 
 # if is.na(month){ assume  month == month(today)}
-cal.excel.link$start1_month[is.na(cal.excel.link$start1_month)] <- lubridate::month(Sys.Date())
-cal.excel.link$end1_month[is.na(cal.excel.link$end1_month)] <- lubridate::month(Sys.Date())
+cal.input$start1_month[is.na(cal.input$start1_month)] <- lubridate::month(Sys.Date())
+cal.input$end1_month[is.na(cal.input$end1_month)] <- lubridate::month(Sys.Date())
 
 # if is.na(mday){ assume  mday == mday(today)}
-cal.excel.link$start1_mday[is.na(cal.excel.link$start1_mday)] <- lubridate::mday(Sys.Date())
-cal.excel.link$end1_mday[is.na(cal.excel.link$end1_mday)] <- lubridate::mday(Sys.Date())
+cal.input$start1_mday[is.na(cal.input$start1_mday)] <- lubridate::mday(Sys.Date())
+cal.input$end1_mday[is.na(cal.input$end1_mday)] <- lubridate::mday(Sys.Date())
 
 
-cal.excel.link$Start1 <- paste(cal.excel.link$start1_year, "-",
-                               unlist(lapply(X = cal.excel.link$start1_month, FUN = lead0)), "-",
-                               unlist(lapply(X = cal.excel.link$start1_mday, FUN = lead0)), " ", 
-                               unlist(lapply(cal.excel.link$start1_hr, lead0)), ":",
-                               unlist(lapply(cal.excel.link$start1_min, lead0)), 
-                               sep = "") %>%
+# AM/PM  - hrs 1:6 become (1:6)+12
+cal.input$start1_hr <- ifelse(cal.input$start1_hr %in% 1:6, cal.input$start1_hr + 12, cal.input$start1_hr)
+cal.input$end1_hr   <- ifelse(cal.input$end1_hr   %in% 1:6, cal.input$end1_hr   + 12, cal.input$end1_hr  )
+
+# put together Start1 and End1
+cal.input$Start1 <- paste(cal.input$start1_year, "-",
+                          unlist(lapply(X = cal.input$start1_month, FUN = lead0)), "-",
+                          unlist(lapply(X = cal.input$start1_mday, FUN = lead0)), " ", 
+                          unlist(lapply(cal.input$start1_hr, lead0)), ":",
+                          unlist(lapply(cal.input$start1_min, lead0)), 
+                          sep = "") %>%
   ymd_hm(., tz = Sys.timezone())
-cal.excel.link$End1 <- paste(cal.excel.link$end1_year, "-",
-                             unlist(lapply(X = cal.excel.link$end1_month, FUN = lead0)), "-",
-                             unlist(lapply(X = cal.excel.link$end1_mday, FUN = lead0)), " ", 
-                             unlist(lapply(cal.excel.link$end1_hr, lead0)), ":",
-                             unlist(lapply(cal.excel.link$end1_min, lead0)), 
-                             sep = "")%>%
+cal.input$End1 <- paste(cal.input$end1_year, "-",
+                          unlist(lapply(X = cal.input$end1_month, FUN = lead0)), "-",
+                          unlist(lapply(X = cal.input$end1_mday, FUN = lead0)), " ", 
+                          unlist(lapply(cal.input$end1_hr, lead0)), ":",
+                          unlist(lapply(cal.input$end1_min, lead0)), 
+                          sep = "")%>%
   ymd_hm(., tz = Sys.timezone())
 
-cal.excel.link$Desc <- as.character(cal.excel.link$Desc)
+cal.input$Desc <- as.character(cal.input$Desc)
+
+# cal.input$in_PM_cal <- as.logical(cal.input$in_PM_cal)
+# cal.input$Add_to_PM_cal <- as.logical(cal.input$Add_to_PM_cal)
+# cal.input$in_MTG_cal <- as.logical(cal.input$in_MTG_cal)
+# 
+# cal.input$in_MTG_cal    <- ifelse(is.na(cal.input$in_MTG_cal), F, cal.input$in_MTG_cal)
+# cal.input$in_PM_cal     <- ifelse(is.na(cal.input$in_PM_cal), F, cal.input$in_PM_cal)
+# cal.input$Add_to_PM_cal <- ifelse(is.na(cal.input$Add_to_PM_cal), T, cal.input$Add_to_PM_cal)
 
 
-# Analysis----
-# 0) remove all old .ics files from directory----
+
+# remove all old .ics files from directory
 old_ics_files <- list.files(pattern = "\\.ics$") %>%
   .[!. %in% c(#"tim.bender@ncceh.org.ics", 
-    #"tim_meeting_calendar.ics", 
-    "tim_MTG_calendar.ics", 
-    "tim_PM_calendar.ics")]
+              #"tim_meeting_calendar.ics", 
+              "tim_MTG_calendar.ics", 
+              "tim_PM_calendar.ics")]
 
 # confirm that wd checks out as safety check
 if(getwd() == "C:/Users/TimBender/Documents/R/ncceh/calendars"){
@@ -254,92 +218,94 @@ if(getwd() == "C:/Users/TimBender/Documents/R/ncceh/calendars"){
   cat(glue("Remaining ics files:\n * {paste(list.files(pattern = \".ics$\"), sep = \"\n * \", collapse = \"\n * \")}"))
 }
 
+# check that new calendar items aren't already in calendar----
+# to-do----
+cal.input
 
-# 1) Get all near-term calendar items from Meeting_Calendar
+pm.ical.list <- calendar::ic_list(x = readLines("tim_PM_calendar.ics"))
 mtg.ical.list <- calendar::ic_list(x = readLines("tim_MTG_calendar.ics"))
 
-# summary, dtstart, dtend
-df_mtg <- df_sum.start.end(mtg.ical.list)
+pm.ical.df        <- ical_list2df(pm.ical.list) %>% as_tibble()
+mtg.ical.df.today <- get.MTG.mgts(a.date = Sys.Date())
 
-df_mtg.nt <- df_mtg[between(x = df_mtg$start_date, 
-        lower = Sys.Date(), 
-        upper = near_term) & 
-  (df_mtg$start_date == df_mtg$end_date),] %>%
+pm.ical.df <- rbind(pm.ical.df, 
+                    mtg.ical.df.today)
+
+pm.xlsx.df <- cal.input[,c("Event_Title", "Desc", "Start1", "End1")] %>%
   mutate(., 
-         source = "MTG", 
-         source_rid = paste(source,rid,sep="_"))
-df_mtg.nt <- df_mtg.nt[!colnames(df_mtg.nt) %in% c("rid", "source")]
+         from_xlsx = T) %>% 
+  as_tibble()
 
+pm.ical.df
+pm.xlsx.df
 
-# 2) Get all near-term calendar items from PM_Calendar
-pm.ical.list <- calendar::ic_list(x = readLines("tim_PM_calendar.ics"))
-
-# summary, dtstart, dtend
-df_pm <- df_sum.start.end(pm.ical.list)
-
-df_pm.nt <- df_pm[between(x = df_pm$start_date, 
-                            lower = Sys.Date(), 
-                            upper = near_term) & 
-                      (df_pm$start_date == df_pm$end_date),] %>%
+pm.xlsx_alread_in_cal <- full_join(pm.ical.df, pm.xlsx.df) %>%
   mutate(., 
-         source = "PM", 
-         source_rid = paste(source,rid,sep="_"))
-df_pm.nt <- df_pm.nt[!colnames(df_pm.nt) %in% c("rid", "source")]
-
-
-# 3) Get all           calendar items from Excel_File
-
-cal.excel.link
-
-df_excel <- cal.excel.link[,c("Event_Title", "Start1", "End1")] %>%
+         from_ical = ifelse(is.na(from_ical), F, from_ical), 
+         from_xlsx = ifelse(is.na(from_xlsx), F, from_xlsx)) %>%
+  .[.$from_ical & .$from_xlsx,c("Event_Title", "Desc", "Start1", "End1")] %>%
   mutate(., 
-         rid = 1:length(End1), 
-         source = "excel", 
-         source_rid = paste(source,rid,sep="_"))
+         already_in_cal = T)
 
-df_excel <- df_excel[!colnames(df_excel) %in% c("rid", "source")]
-df_excel$start_date <- as_date(df_excel$Start1)
-df_excel$end_date   <- as_date(df_excel$End1)
+# remove items already in cal from xlsx
+pm.xlsx_alread_in_cal
+cal.input
 
-colnames(df_excel) <- c("summary", "start_datetime", "end_datetime", "source_rid", 
-                        "start_date", "end_date")
-df_excel <- df_excel[,c("summary", "start_date", "start_datetime", "end_date", "end_datetime", "source_rid")]
-
-# 4) ID Meeting_Calendar items not in PM_Calendar and ADD_TO      Excel_File
-# df_excel <- rbind(df_excel, 
-#                   anti_join(x = df_mtg.nt, y = df_excel, 
-#                             by = c("summary", "start_date", "start_datetime", "end_date", "end_datetime"))) %>%
-#   group_by(summary,start_date,start_datetime,end_date,end_datetime) %>%
-#   summarise(n = n()) %>%
-#   .[order(.$n,decreasing = T),]
-
-rbind(df_excel, 
-      df_mtg.nt, 
-      df_pm.nt) %>%
+cal.input <- left_join(cal.input, 
+          pm.xlsx_alread_in_cal) %>%
   mutate(., 
-         source = gsub("_.*$", "", source_rid)) %>%
-  as.data.table() %>%
-  dcast(., 
-        summary + start_date + 
-          start_datetime + 
-          end_date ~ 
-          #end_datetime ~
-          source, 
-        fun.aggregate = length, fill = 0) %>%
-  as.data.frame() %>%
-  mutate(., 
-         n_distinct_source = (MTG > 0) + (PM > 0) + (excel > 0)) %>%
-  .[order(.$start_datetime, .$summary ),]
+         already_in_cal = ifelse(is.na(already_in_cal), F, already_in_cal)) %>%
+  .[!.$already_in_cal,] %>% 
+  .[!colnames(.) %in% c("already_in_cal")]
 
-# 5) ID Excel_File       items     in PM_Calendar and REMOVE_FROM Excel_File
+# pull in meetings from specific day of MTG calendar
 
 
 
-# Write new ICS file----
 
 
-# Write new Excel File----
+
+# generate ics file from source----
+new.ics.export_PM <- NULL
+
+for(i in 1:nrow(cal.input)){
+  #if(cal.input$Add_to_PM_cal[i] == T | is.na(cal.input$Add_to_PM_cal[i])){
+    
+    # cal.input$in_PM_cal[i] <- T
+    # cal.input$Add_to_PM_cal[i] <- F
+    
+    new.ics.export_PM <- rbind(new.ics.export_PM, 
+                               gen_ical.event(event_title = cal.input$Event_Title[i], 
+                                              desc        = cal.input$Desc[i], 
+                                              start1      = cal.input$Start1[i], 
+                                              end1        = cal.input$End1[i]))
+    #openxlsx::write.xlsx(x = cal.input, file = "tim_cal_input.xlsx")
+    
+  #}
+}
 
 
-# set wd----
-setwd(wd.home)
+new.ics.export_PM
+
+# name ics file out----
+file.name.out <- glue("CAL{gsub(\":\",\"_\",gsub(\" \",\"__\",Sys.time()))}.ics")
+
+# write to ics files----
+ic_write(ic = new.ics.export_PM, 
+         file = file.name.out)
+
+
+# remove imported files 
+if(getwd() == "C:/Users/TimBender/Documents/R/ncceh/calendars"){
+  # delete the old ics files
+  file.remove(c("tim_MTG_calendar.ics", "tim_PM_calendar.ics"))
+  cat(glue("Remaining ics files:\n * {paste(list.files(pattern = \".ics$\"), sep = \"\n * \", collapse = \"\n * \")}"))
+}
+
+
+# update xlsx file
+write.xlsx(x = cal.input, file = "tim_cal_input.xlsx")
+
+
+# return to regular wd----
+setwd("C:/Users/TimBender/Documents/R/ncceh")
