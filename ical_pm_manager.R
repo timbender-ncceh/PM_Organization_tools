@@ -10,6 +10,28 @@ library(openxlsx)
 
 rm(list=ls());cat('\f')
 
+
+# To Do Items---- 
+
+# 1. add new column to input xlsx called "clicktime category" so
+# that you can summarise and produce clicktime easier at end of month
+
+# 2. incorporate "clicktime_category" to all parts of the code
+
+# 3. make PM_calendar data frame, PIP_calendar data frame, and xlsx_calendar
+# data frame consistent with 5 columns: 1) clicktime_category, summary,
+# description, start_datetime, end_datetime
+
+# 4. Only check for identical entries between calendars with the following
+# fields: summary, start_datetime, end_datetime
+
+# 5. make sure both PIP_calendar includes all meetings from PM_calendar
+
+# 6. figure out how to automatically remove lines from .xlsx only after they've
+# been verified in PIP_calendar while not allowing any calendar item to be
+# double_entered
+
+
 # funs----
 get.MTG.mgts <- function(a.date = Sys.Date(), 
                          mtg_list = mtg.ical.list){
