@@ -19,9 +19,6 @@ rm(list=ls());cat('\f')
 
 # 2. incorporate "clicktime_cat" to all parts of the code
 
-# add another week's worth of recurring items. 
-
-
 
 # 6. figure out how to automatically remove lines from .xlsx only after they've
 # been verified in PIP_calendar while not allowing any calendar item to be
@@ -219,8 +216,6 @@ cal.input$clicktime_cat <- toupper(cal.input$clicktime_cat)
 # append clicktime_cat as "[clicktime_cat] summary" in summary field of every xlsx file and trickle-down to every calendar.  
 cal.input$Event_Title <- paste("[", cal.input$clicktime_cat, "] ", cal.input$Event_Title, sep = "")
 
-
-
 # remove all old .ics files from directory
 old_ics_files <- list.files(pattern = "\\.ics$") %>%
   .[!. %in% c(#"tim.bender@ncceh.org.ics", 
@@ -288,6 +283,115 @@ cal.input <- left_join(cal.input,
 
 
 
+
+# add another week's worth of recurring items. ----
+
+# first check to see if they're already in the calendar
+
+this.weeks.dates <- data.frame(date = as_date(unique(c(Sys.Date():(Sys.Date() %m+% days(4)), 
+                                                Sys.Date():(Sys.Date() %m-% days(4)))))) %>%
+  mutate(., 
+         today = date == Sys.Date(), 
+         week = week(date), 
+         wday = lubridate::wday(date, label = T)) %>%
+  .[order(.$date),] %>%
+  .[.$week == .$week[.$today == T],] %>%
+  .[.$wday %in% c("Mon", "Tue", "Wed", "Thu", "Fri"),] %>%
+  .$date
+
+
+# check this week 
+if(sum(unique(as_date(pm.ical.df[pm.ical.df$Event_Title %>% 
+                     grepl("\\[RECURRING\\] - Morning Planning", ., 
+                           ignore.case = F),]$Start1)) %in%
+  this.weeks.dates) != 5){
+  # not in this week; must add vvv
+  cal.input <- rbind(cal.input, 
+        data.frame(clicktime_cat = c("recurring"), 
+                   Event_Title   = c("[RECURRING] - Morning Planning"), 
+                   Desc          = c(NA), 
+                   start1_year   = c(year(this.weeks.dates)), 
+                   start1_month  = c(lubridate::month(this.weeks.dates)), 
+                   start1_mday   = c(mday(this.weeks.dates)), 
+                   start1_hr     = c(7,8,7,7,7), 
+                   start1_min    = c(0), 
+                   Start1        = c(NA), 
+                   end1_year   = c(year(this.weeks.dates)), 
+                   end1_month  = c(lubridate::month(this.weeks.dates)), 
+                   end1_mday   = c(mday(this.weeks.dates)), 
+                   end1_hr     = c(hour(NA)), 
+                   end1_min    = c(minute(NA)), 
+                   End1        = c(NA))) %>%
+    mutate(., 
+           end1_hr = start1_hr + 1,
+           end1_min = start1_min)
+  
+  cal.input$Start1 <- paste(cal.input$start1_year, "-",
+                            unlist(lapply(X = cal.input$start1_month, FUN = lead0)), "-",
+                            unlist(lapply(X = cal.input$start1_mday, FUN = lead0)), " ", 
+                            unlist(lapply(cal.input$start1_hr, lead0)), ":",
+                            unlist(lapply(cal.input$start1_min, lead0)), 
+                            sep = "") %>%
+    ymd_hm(., tz = Sys.timezone())
+  cal.input$End1 <- paste(cal.input$end1_year, "-",
+                          unlist(lapply(X = cal.input$end1_month, FUN = lead0)), "-",
+                          unlist(lapply(X = cal.input$end1_mday, FUN = lead0)), " ", 
+                          unlist(lapply(cal.input$end1_hr, lead0)), ":",
+                          unlist(lapply(cal.input$end1_min, lead0)), 
+                          sep = "")%>%
+    ymd_hm(., tz = Sys.timezone())
+  
+  cal.input
+}
+
+# check next week
+if(sum(unique(as_date(pm.ical.df[pm.ical.df$Event_Title %>% 
+                                 grepl("\\[RECURRING\\] - Morning Planning", ., 
+                                       ignore.case = F),]$Start1)) %in%
+       (this.weeks.dates %m+% days(7))) != 5){
+  # not in next week; must add vvv
+  cal.input <- rbind(cal.input, 
+                     data.frame(clicktime_cat = c("recurring"), 
+                                Event_Title   = c("[RECURRING] - Morning Planning"), 
+                                Desc          = c(NA), 
+                                start1_year   = c(year( (this.weeks.dates %m+% days(7)))), 
+                                start1_month  = c(lubridate::month( (this.weeks.dates %m+% days(7)))), 
+                                start1_mday   = c(mday( (this.weeks.dates %m+% days(7)))), 
+                                start1_hr     = c(7,8,7,7,7), 
+                                start1_min    = c(0), 
+                                Start1        = c(NA), 
+                                end1_year   = c(year( (this.weeks.dates %m+% days(7)))), 
+                                end1_month  = c(lubridate::month( (this.weeks.dates %m+% days(7)))), 
+                                end1_mday   = c(mday( (this.weeks.dates %m+% days(7)))), 
+                                end1_hr     = c(hour(NA)), 
+                                end1_min    = c(minute(NA)), 
+                                End1        = c(NA))) %>%
+    mutate(., 
+           end1_hr = start1_hr + 1,
+           end1_min = start1_min)
+  
+  cal.input$Start1 <- paste(cal.input$start1_year, "-",
+                            unlist(lapply(X = cal.input$start1_month, FUN = lead0)), "-",
+                            unlist(lapply(X = cal.input$start1_mday, FUN = lead0)), " ", 
+                            unlist(lapply(cal.input$start1_hr, lead0)), ":",
+                            unlist(lapply(cal.input$start1_min, lead0)), 
+                            sep = "") %>%
+    ymd_hm(., tz = Sys.timezone())
+  cal.input$End1 <- paste(cal.input$end1_year, "-",
+                          unlist(lapply(X = cal.input$end1_month, FUN = lead0)), "-",
+                          unlist(lapply(X = cal.input$end1_mday, FUN = lead0)), " ", 
+                          unlist(lapply(cal.input$end1_hr, lead0)), ":",
+                          unlist(lapply(cal.input$end1_min, lead0)), 
+                          sep = "")%>%
+    ymd_hm(., tz = Sys.timezone())
+  
+  cal.input
+  
+}
+
+pm.ical.df[pm.ical.df$Event_Title %>% 
+             grepl("FOCUS TIME - Morning Planning", ., ignore.case = F),] %>%
+  .[as_date(.$Start1) %in% this.weeks.dates,]
 
 
 
