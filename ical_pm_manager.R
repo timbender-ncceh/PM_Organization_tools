@@ -6,6 +6,10 @@ library(uuid)
 library(glue)
 library(openxlsx)
 
+
+print("see andrea email from 3/7/23 on clicktime categories");Sys.sleep(10)
+
+
 # https://cran.rstudio.com/web/packages/calendar/calendar.pdf
 
 rm(list=ls());cat('\f')
@@ -13,23 +17,17 @@ rm(list=ls());cat('\f')
 
 # To Do Items---- 
 
-# 1. add new column to input xlsx called "clicktime category" so
-# that you can summarise and produce clicktime easier at end of month
+# 2. incorporate "clicktime_cat" to all parts of the code
 
-# 2. incorporate "clicktime_category" to all parts of the code
+# add another week's worth of recurring items. 
 
-# 3. make PM_calendar data frame, PIP_calendar data frame, and xlsx_calendar
-# data frame consistent with 5 columns: 1) clicktime_category, summary,
-# description, start_datetime, end_datetime
 
-# 4. Only check for identical entries between calendars with the following
-# fields: summary, start_datetime, end_datetime
-
-# 5. make sure both PIP_calendar includes all meetings from PM_calendar
 
 # 6. figure out how to automatically remove lines from .xlsx only after they've
 # been verified in PIP_calendar while not allowing any calendar item to be
 # double_entered
+
+# 9. if PIP_calendar events have to leading "[clicktime_cat]" pattern in summary field, append a "[missing]" to them
 
 
 # funs----
@@ -193,7 +191,6 @@ cal.input$end1_month[is.na(cal.input$end1_month)] <- lubridate::month(Sys.Date()
 cal.input$start1_mday[is.na(cal.input$start1_mday)] <- lubridate::mday(Sys.Date())
 cal.input$end1_mday[is.na(cal.input$end1_mday)] <- lubridate::mday(Sys.Date())
 
-
 # AM/PM  - hrs 1:6 become (1:6)+12
 cal.input$start1_hr <- ifelse(cal.input$start1_hr %in% 1:6, cal.input$start1_hr + 12, cal.input$start1_hr)
 cal.input$end1_hr   <- ifelse(cal.input$end1_hr   %in% 1:6, cal.input$end1_hr   + 12, cal.input$end1_hr  )
@@ -207,31 +204,29 @@ cal.input$Start1 <- paste(cal.input$start1_year, "-",
                           sep = "") %>%
   ymd_hm(., tz = Sys.timezone())
 cal.input$End1 <- paste(cal.input$end1_year, "-",
-                          unlist(lapply(X = cal.input$end1_month, FUN = lead0)), "-",
-                          unlist(lapply(X = cal.input$end1_mday, FUN = lead0)), " ", 
-                          unlist(lapply(cal.input$end1_hr, lead0)), ":",
-                          unlist(lapply(cal.input$end1_min, lead0)), 
-                          sep = "")%>%
+                        unlist(lapply(X = cal.input$end1_month, FUN = lead0)), "-",
+                        unlist(lapply(X = cal.input$end1_mday, FUN = lead0)), " ", 
+                        unlist(lapply(cal.input$end1_hr, lead0)), ":",
+                        unlist(lapply(cal.input$end1_min, lead0)), 
+                        sep = "")%>%
   ymd_hm(., tz = Sys.timezone())
 
 cal.input$Desc <- as.character(cal.input$Desc)
 
-# cal.input$in_PM_cal <- as.logical(cal.input$in_PM_cal)
-# cal.input$Add_to_PM_cal <- as.logical(cal.input$Add_to_PM_cal)
-# cal.input$in_MTG_cal <- as.logical(cal.input$in_MTG_cal)
-# 
-# cal.input$in_MTG_cal    <- ifelse(is.na(cal.input$in_MTG_cal), F, cal.input$in_MTG_cal)
-# cal.input$in_PM_cal     <- ifelse(is.na(cal.input$in_PM_cal), F, cal.input$in_PM_cal)
-# cal.input$Add_to_PM_cal <- ifelse(is.na(cal.input$Add_to_PM_cal), T, cal.input$Add_to_PM_cal)
+# make clicktime_cat all UPPERCASE all the time. 
+cal.input$clicktime_cat <- toupper(cal.input$clicktime_cat)
+
+# append clicktime_cat as "[clicktime_cat] summary" in summary field of every xlsx file and trickle-down to every calendar.  
+cal.input$Event_Title <- paste("[", cal.input$clicktime_cat, "] ", cal.input$Event_Title, sep = "")
 
 
 
 # remove all old .ics files from directory
 old_ics_files <- list.files(pattern = "\\.ics$") %>%
   .[!. %in% c(#"tim.bender@ncceh.org.ics", 
-              #"tim_meeting_calendar.ics", 
-              "tim_MTG_calendar.ics", 
-              "tim_PM_calendar.ics")]
+    #"tim_meeting_calendar.ics", 
+    "tim_MTG_calendar.ics", 
+    "tim_PM_calendar.ics")]
 
 # confirm that wd checks out as safety check
 if(getwd() == "C:/Users/TimBender/Documents/R/ncceh/calendars"){
@@ -242,6 +237,15 @@ if(getwd() == "C:/Users/TimBender/Documents/R/ncceh/calendars"){
 
 # check that new calendar items aren't already in calendar----
 # to-do----
+# 3. make PM_calendar data frame, PIP_calendar data frame, and xlsx_calendar
+# data frame consistent with 6 columns: 1) clicktime_cat, summary,
+# description, start_datetime, end_datetime, from_source
+
+# 4. Only check for identical entries between calendars with the following
+# fields: summary, start_datetime, end_datetime
+
+# 5. make sure both PIP_calendar includes all meetings from PM_calendar
+
 cal.input
 
 pm.ical.list <- calendar::ic_list(x = readLines("tim_PM_calendar.ics"))
@@ -274,7 +278,7 @@ pm.xlsx_alread_in_cal
 cal.input
 
 cal.input <- left_join(cal.input, 
-          pm.xlsx_alread_in_cal) %>%
+                       pm.xlsx_alread_in_cal) %>%
   mutate(., 
          already_in_cal = ifelse(is.na(already_in_cal), F, already_in_cal)) %>%
   .[!.$already_in_cal,] %>% 
@@ -292,17 +296,17 @@ new.ics.export_PM <- NULL
 
 for(i in 1:nrow(cal.input)){
   #if(cal.input$Add_to_PM_cal[i] == T | is.na(cal.input$Add_to_PM_cal[i])){
-    
-    # cal.input$in_PM_cal[i] <- T
-    # cal.input$Add_to_PM_cal[i] <- F
-    
-    new.ics.export_PM <- rbind(new.ics.export_PM, 
-                               gen_ical.event(event_title = cal.input$Event_Title[i], 
-                                              desc        = cal.input$Desc[i], 
-                                              start1      = cal.input$Start1[i], 
-                                              end1        = cal.input$End1[i]))
-    #openxlsx::write.xlsx(x = cal.input, file = "tim_cal_input.xlsx")
-    
+  
+  # cal.input$in_PM_cal[i] <- T
+  # cal.input$Add_to_PM_cal[i] <- F
+  
+  new.ics.export_PM <- rbind(new.ics.export_PM, 
+                             gen_ical.event(event_title = cal.input$Event_Title[i], 
+                                            desc        = cal.input$Desc[i], 
+                                            start1      = cal.input$Start1[i], 
+                                            end1        = cal.input$End1[i]))
+  #openxlsx::write.xlsx(x = cal.input, file = "tim_cal_input.xlsx")
+  
   #}
 }
 
