@@ -7,7 +7,7 @@ library(glue)
 library(openxlsx)
 
 
-print("see andrea email from 3/7/23 on clicktime categories");Sys.sleep(10)
+print("see andrea email from 3/7/23 on clicktime categories");Sys.sleep(2)
 
 
 # https://cran.rstudio.com/web/packages/calendar/calendar.pdf
@@ -313,7 +313,7 @@ if(sum(unique(as_date(pm.ical.df[pm.ical.df$Event_Title %>%
                    start1_year   = c(year(this.weeks.dates)), 
                    start1_month  = c(lubridate::month(this.weeks.dates)), 
                    start1_mday   = c(mday(this.weeks.dates)), 
-                   start1_hr     = c(7,8,7,7,7), 
+                   start1_hr     = c(7,7,8,7,7), 
                    start1_min    = c(0), 
                    Start1        = c(NA), 
                    end1_year   = c(year(this.weeks.dates)), 
@@ -357,7 +357,7 @@ if(sum(unique(as_date(pm.ical.df[pm.ical.df$Event_Title %>%
                                 start1_year   = c(year( (this.weeks.dates %m+% days(7)))), 
                                 start1_month  = c(lubridate::month( (this.weeks.dates %m+% days(7)))), 
                                 start1_mday   = c(mday( (this.weeks.dates %m+% days(7)))), 
-                                start1_hr     = c(7,8,7,7,7), 
+                                start1_hr     = c(7,7,8,7,7), 
                                 start1_min    = c(0), 
                                 Start1        = c(NA), 
                                 end1_year   = c(year( (this.weeks.dates %m+% days(7)))), 
