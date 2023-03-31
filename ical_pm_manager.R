@@ -86,9 +86,13 @@ ical_list2df <- function(ic_list){
       gsub(pattern = "^SUMMARY:", "", .) 
     
     # DESCRIPTION
-    temp.desc <- grep(pattern = "DESCRIPTION", 
-                      x = ic_list[[i]], 
-                      value = T) %>%
+    temp.desc <- ifelse(test = length(grep(pattern = "DESCRIPTION", 
+                                           x = ic_list[[i]], 
+                                           value = T)) == 0, 
+                        no   = grep(pattern = "DESCRIPTION", 
+                                    x = ic_list[[i]], 
+                                    value = T), 
+                        yes  = "DESCRIPTION:None") %>%
       gsub(pattern = "^DESCRIPTION:", "", .) 
     
     out.df <- rbind(out.df, 
@@ -289,7 +293,7 @@ cal.input <- left_join(cal.input,
 # first check to see if they're already in the calendar
 
 this.weeks.dates <- data.frame(date = as_date(unique(c(Sys.Date():(Sys.Date() %m+% days(4)), 
-                                                Sys.Date():(Sys.Date() %m-% days(4)))))) %>%
+                                                       Sys.Date():(Sys.Date() %m-% days(4)))))) %>%
   mutate(., 
          today = date == Sys.Date(), 
          week = week(date), 
@@ -302,26 +306,26 @@ this.weeks.dates <- data.frame(date = as_date(unique(c(Sys.Date():(Sys.Date() %m
 
 # check this week 
 if(sum(unique(as_date(pm.ical.df[pm.ical.df$Event_Title %>% 
-                     grepl("\\[RECURRING\\] - Morning Planning", ., 
-                           ignore.case = F),]$Start1)) %in%
-  this.weeks.dates) != 5){
+                                 grepl("\\[RECURRING\\] - Morning Planning", ., 
+                                       ignore.case = F),]$Start1)) %in%
+       this.weeks.dates) != 5){
   # not in this week; must add vvv
   cal.input <- rbind(cal.input, 
-        data.frame(clicktime_cat = c("recurring"), 
-                   Event_Title   = c("[RECURRING] - Morning Planning"), 
-                   Desc          = c(NA), 
-                   start1_year   = c(year(this.weeks.dates)), 
-                   start1_month  = c(lubridate::month(this.weeks.dates)), 
-                   start1_mday   = c(mday(this.weeks.dates)), 
-                   start1_hr     = c(7,7,8,7,7), 
-                   start1_min    = c(0), 
-                   Start1        = c(NA), 
-                   end1_year   = c(year(this.weeks.dates)), 
-                   end1_month  = c(lubridate::month(this.weeks.dates)), 
-                   end1_mday   = c(mday(this.weeks.dates)), 
-                   end1_hr     = c(hour(NA)), 
-                   end1_min    = c(minute(NA)), 
-                   End1        = c(NA))) %>%
+                     data.frame(clicktime_cat = c("recurring"), 
+                                Event_Title   = c("[RECURRING] - Morning Planning"), 
+                                Desc          = c(NA), 
+                                start1_year   = c(year(this.weeks.dates)), 
+                                start1_month  = c(lubridate::month(this.weeks.dates)), 
+                                start1_mday   = c(mday(this.weeks.dates)), 
+                                start1_hr     = c(7,7,8,7,7), 
+                                start1_min    = c(0), 
+                                Start1        = c(NA), 
+                                end1_year   = c(year(this.weeks.dates)), 
+                                end1_month  = c(lubridate::month(this.weeks.dates)), 
+                                end1_mday   = c(mday(this.weeks.dates)), 
+                                end1_hr     = c(hour(NA)), 
+                                end1_min    = c(minute(NA)), 
+                                End1        = c(NA))) %>%
     mutate(., 
            end1_hr = start1_hr + 1,
            end1_min = start1_min)
