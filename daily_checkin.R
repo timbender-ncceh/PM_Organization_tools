@@ -283,16 +283,14 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
 
 
 # Vars.dates----
-in_office.dates  <- ymd(c(20230215,20230216,20230217,
-                          20230222,20230223,20230224, 
-                          20230301,20230302, 
-                          20230308,20230309,
-                          20230316,20230331))
+in_office.dates  <- ymd(c(20230215,20230216,20230217,20230222,20230223,20230224, 
+                          20230301,20230302,20230308,20230309,20230316,20230331, 
+                          20230405,20230406,20230412,20230413,20230419,20230420))
 vaca.dates       <- ymd(c(20230327,20230328, 
                           20230622,20230623,
                           20230717,20230718,20230719,20230720,20230721))
 sick_other.dates <- ymd(c(19810513))
-holiday.dates    <- ymd(c(20230101, 20230116, 20230407, 20230529, 20230619, 
+holiday.dates    <- ymd(c(20230101, 20230116, 20230410, 20230529, 20230619, 
                           20230704, 20230904, 20231123, 20231124, 20231225, 
                           20231226, 20231227))
 
@@ -308,18 +306,22 @@ holiday.dates    <- ymd(c(20230101, 20230116, 20230407, 20230529, 20230619,
 
 
 # Vars.projs----
-cur.projs <- data.frame(name = c("PIT - figure out why some data in csv export doesn't match HMIS",
-                                 #"CODI - phone number start_date info integration",
-                                 "BoS Dashboard Planning",
-                                 "AJ Fletcher Data",
-                                 "calendar work block blocking block block block",
+cur.projs <- data.frame(name = c("clicktime", 
+                                 "veterans workgroup key metrics for PPT",
+                                 "congressional district maps", 
+                                 "schedule meeting with katie to go over BO reporting for re-mapping broken reports",
+  "PIT - figure out why some data in csv export doesn't match HMIS",
+                                 "BoS Dashboard",
+                                 #"PIT - finish final code corrections/changes",
+                                 "vaccination data processing",
                                  "PIT weekly 2023 data pulldown"), 
                         due = (c(
+                          ymd(20230406) %m+% days(c(0,1,1,1)), 
                           Sys.Date() %m+% days(1), 
-                          Sys.Date() %m+% days(0), 
-                          Sys.Date() %m+% days(0), 
+                          Sys.Date() %m+% days(1), 
+                          #Sys.Date() %m+% days(0), 
                           Sys.Date() %m+% days(0),
-                          this_thurDate()))) %>%
+                          ymd(this_thurDate())))) %>%
   mutate(., 
          due = ifelse(is.na(due), Sys.Date(), due)) %>%
   mutate(., 
