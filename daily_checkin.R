@@ -545,3 +545,4 @@ cat('\f')
 cat(template,"\n",summarise_mdays(v.dates = get.dates_in.month(Sys.Date()), 
                                   days.in.office = in_office.dates))
 
+ 
