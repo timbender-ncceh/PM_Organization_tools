@@ -89,6 +89,8 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
   
   out$color <- NA
   #out$color[out$date == Sys.Date()] <- "today"
+  
+  # in-office color
   out$color[out$date %in% days.in.office] <- "in_office"
   
   # vacation color
@@ -118,9 +120,16 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
   
   # replace non-current month
   out$mday2[out$month != unique(lubridate::month(v.dates))] <- "  "
-  # replace today 
+  
+  # replace today --
   #out$mday2[out$date == Sys.Date()] <- "xx"
-  out$mday2[out$date == Sys.Date()] <- emoji::moon(date = Sys.Date()) # replaces today with moon phase
+  #out$mday2[out$date == Sys.Date()] <- emoji::moon(date = Sys.Date()) # replaces today with moon phase
+  out$mday2[out$date == Sys.Date()] <- crayon::red(crayon::bold(mday(Sys.Date())))
+  out$mday2[out$date == Sys.Date()] <- crayon::underline(crayon::bold(ifelse(test = nchar(mday(Sys.Date())) == 2, 
+                                                                       yes  = as.character(mday(Sys.Date())), 
+                                                                       no   = paste("0", mday(Sys.Date()), sep = "", collapse = ""))))
+  
+  
   
   # replace birthday----
   if(month(Sys.Date()) == 5){
@@ -149,7 +158,7 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
   out$mday2[out$color == "grey"] <- crayon::silver(out$mday2[out$color == "grey" & 
                                                                !is.na(out$color)])
   out$mday2[out$color == "in_office"] <- black(bgGreen(out$mday2[out$color == "in_office"]))
-  out$mday2[out$date == Sys.Date() ] <- bold(bold(out$mday2[out$date == Sys.Date() ]))
+  out$mday2[out$date == Sys.Date() ]  <- bold(bold(out$mday2[out$date == Sys.Date() ]))
   
   if(any(out$date %in% days.holidays)){
     out$mday2[out$color == "holiday"] <- blue(bgRed(out$mday2[out$color == "holiday"]))
@@ -162,7 +171,9 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
   }
   
   # remove formatting for days not in current month
-  out$mday2[strip_style(out$mday2) == "  "] <- strip_style(out$mday2[strip_style(out$mday2) == "  "])
+  out$mday2[strip_style(out$mday2) == "  " & 
+              out$date != Sys.Date()] <- strip_style(out$mday2[strip_style(out$mday2) == "  " & 
+                                                                 out$date != Sys.Date()])
   
   
   
@@ -181,7 +192,7 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
     
   }
   #legend <- glue("{italic(\"----// Calendar Legend //----\")}\n{(\"Today\t\t(bold 'xx')\")}\n{silver(\"Remote\t\t(light grey)\")}\n{bgGreen(red(\"In-Office\t(red on green)\"))}\n{white(bgRed(\"Vacation\t(white on red)\"))}\n{bgRed(blue(\"Holiday\t\t(blue on red)\"))}")
-  legend <- glue("{italic(\"--// Legend //--\")}\n  {bgGreen(black(\"- In-Office\t\"))}\n  {silver(\"- Remote\")}\n  {white(bgRed(\"- Vacation\t\"))}\n  {bgRed(blue(\"- Holiday\t\"))}\n  {bgCyan(black(\"- Sick/Other\t\"))}\n  -{emoji::emoji(\"tooth\")}/{emoji::emoji(\"stethoscope\")} Medical Apt")
+  legend <- glue("{italic(\"--// Legend //--\")}\n  {bgGreen(black(\"- In-Office\t\"))}\n  {silver(\"- Remote\")}\n  {white(bgRed(\"- Vacation\t\"))}\n  {bgRed(blue(\"- Holiday\t\"))}\n  {bgCyan(black(\"- Sick/Other\t\"))}\n  -{emoji::emoji(\"tooth\")}/{emoji::emoji(\"stethoscope\")} Med Apt")
   output <- paste(output, 
                   sep = " ", collapse = " ") 
   output <- paste(output, legend, sep = "", collapse = "")
