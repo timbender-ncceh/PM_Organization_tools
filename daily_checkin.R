@@ -43,7 +43,9 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
                             days.vacation = vaca.dates, 
                             days.sick.other = sick_other.dates,
                             days.holidays = holiday.dates, 
-                            anchor.days = anchor.day.dates){
+                            anchor.days = anchor.day.dates, 
+                            dentist.dates = dental.apt.dates, 
+                            doctor.dates = dr.apt.dates){
   require(lubridate)
   require(crayon)
   require(glue)
@@ -125,6 +127,16 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
     out[out$month == 5 & out$mday == 13,]$mday2 <- "\U0001f382"
   }
   
+  # replace dental apt----
+  if(any(dentist.dates %in% out$date)){
+    out[out$date %in% dentist.dates,]$mday2 <- "\U0001f9b7"
+  }
+  
+  # replace doctor apt----
+  if(any(doctor.dates %in% out$date)){
+    out[out$date %in% doctor.dates,]$mday2 <- "\U0001fa7a"
+  }
+  
   # replace anchor day----
   if(month(Sys.Date()) %in% month(anchor.days)){
     cur.anchor.date <- anchor.days[month(anchor.days)==month(Sys.Date())]
@@ -169,7 +181,7 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
     
   }
   #legend <- glue("{italic(\"----// Calendar Legend //----\")}\n{(\"Today\t\t(bold 'xx')\")}\n{silver(\"Remote\t\t(light grey)\")}\n{bgGreen(red(\"In-Office\t(red on green)\"))}\n{white(bgRed(\"Vacation\t(white on red)\"))}\n{bgRed(blue(\"Holiday\t\t(blue on red)\"))}")
-  legend <- glue("{italic(\"--// Legend //--\")}\n  {bgGreen(black(\"- In-Office\t\"))}\n  {silver(\"- Remote\")}\n  {white(bgRed(\"- Vacation\t\"))}\n  {bgRed(blue(\"- Holiday\t\"))}\n  {bgCyan(black(\"- Sick/Other\t\"))}")
+  legend <- glue("{italic(\"--// Legend //--\")}\n  {bgGreen(black(\"- In-Office\t\"))}\n  {silver(\"- Remote\")}\n  {white(bgRed(\"- Vacation\t\"))}\n  {bgRed(blue(\"- Holiday\t\"))}\n  {bgCyan(black(\"- Sick/Other\t\"))}\n  -{emoji::emoji(\"tooth\")}/{emoji::emoji(\"stethoscope\")} Medical Apt")
   output <- paste(output, 
                   sep = " ", collapse = " ") 
   output <- paste(output, legend, sep = "", collapse = "")
@@ -182,9 +194,13 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
 in_office.dates  <- ymd(c(20230215,20230216,20230217,20230222,20230223,20230224, 
                           20230301,20230302,20230308,20230309,20230316,20230331, 
                           20230405,20230406,20230412,20230413,20230426, 
-                          20230509,20230510,20230511,20230515,20230517,20230518, 
-                          20230524,20230525,20230531
+                          20230508,20230516,20230524,20230525,20230526
 ))
+
+dr.apt.dates     <- ymd(c(19810513))
+dental.apt.dates <- ymd(c(20230531))
+
+
 vaca.dates       <- ymd(c(20230327,20230328, 
                           20230622,20230623,
                           20230717,20230718,20230719,20230720,20230721))
@@ -194,7 +210,7 @@ holiday.dates    <- ymd(c(20230101, 20230116, 20230410,
                           20230619, 20230704, 20230904, 
                           20231123, 20231124, 20231225, 
                           20231226, 20231227))
-anchor.day.dates <- ymd(c(20230509))
+anchor.day.dates <- ymd(c(20230516))
 
 # holiday.dates   <- "New Year’s Day
 # Martin Luther King Jr. Birthday
@@ -205,22 +221,31 @@ anchor.day.dates <- ymd(c(20230509))
 # Thanksgiving Day (2 Days)
 # Christmas Day (3 days) (or these 3 days may be used for Hanukkah or Yom Kippur)
 # Floating Holiday (Veteran’s Day, President’s Day, employee’s birthday, or other religious holiday)"
+# Juneteenth
+
 # vars.wellbeing----
+
+
 cur.wellbeing <- c("check-in with someone i haven't talked to in a while", 
-                   "praise someone", 
-                   "listen",
-                   "take a walk at lunch")
+                   "show interest and empathy in others",
+                   "Do 1 thing today that makes me happy",
+                   "take a walk")
 
 # Vars.projs----
-cur.projs <- data.frame(name = c("CODI - figure out why 1/3 people missing from dataset",
+cur.projs <- data.frame(name = c("DHHS - connect with Hayley and find out what next steps will be for project",
+                                 "Maryland Data Request Response", 
+                                 "Update Smartsheet (globally)",
                                  "BoS Dashboard", 
-                                 "Racial Equity Analysis Census Data Pull",
-                                 "Calendar Block my Day"), 
-                        due = (c(
-                          Sys.Date() %m+% days(0), 
-                          Sys.Date() %m+% days(0), 
-                          Sys.Date() %m+% days(0), 
-                          Sys.Date() %m+% days(0)))) %>%
+                                 #"Racial Equity Analysis - Census Data Pull",
+                                 "Racial Equity Analysis - StellaP Data Pull",
+                                 "Racial Equity Analysis - Data Exploration Charts"), 
+                        due = (c(Sys.Date() %m+% days(0), 
+                                 Sys.Date() %m+% days(0), 
+                                 Sys.Date() %m+% days(1), 
+                                 Sys.Date() %m+% days(1), 
+                                 #Sys.Date() %m+% days(0), 
+                                 Sys.Date() %m+% days(1), 
+                                 Sys.Date() %m+% days(1)))) %>%
   mutate(., 
          due = ifelse(is.na(due), Sys.Date(), due)) %>%
   mutate(., 
@@ -274,6 +299,7 @@ poss.mood <- c("smiley", "tada", "100", "thumbs up","trophy","handshake",   # ba
                #"fallen leaf",  "pumpkin", "turkey",                        # for autumn
                #"santa", "cold face",                                       # for winter
                "coffee",                                                    # good for when tired
+               "umbrella on ground", "mountain", 
                "gym","computer", "disk"  # generic
 ) 
 
