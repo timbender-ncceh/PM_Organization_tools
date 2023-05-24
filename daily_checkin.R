@@ -5,13 +5,12 @@
 library(dplyr)
 library(glue)
 library(lubridate)
-library(lexicon)
+#library(lexicon)
 library(ggplot2)
-library(Bolstad)
+#library(Bolstad)
 library(emoji)
 library(crayon)
 library(suncalc)
-#library(rnoaa)
 
 rm(list=ls());cat('\f')
 
@@ -43,7 +42,10 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
                             days.in.office = in_office.dates, 
                             days.vacation = vaca.dates, 
                             days.sick.other = sick_other.dates,
-                            days.holidays = holiday.dates){
+                            days.holidays = holiday.dates, 
+                            anchor.days = anchor.day.dates, 
+                            dentist.dates = dental.apt.dates, 
+                            doctor.dates = dr.apt.dates){
   require(lubridate)
   require(crayon)
   require(glue)
@@ -87,6 +89,8 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
   
   out$color <- NA
   #out$color[out$date == Sys.Date()] <- "today"
+  
+  # in-office color
   out$color[out$date %in% days.in.office] <- "in_office"
   
   # vacation color
@@ -99,12 +103,10 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
     out$color[out$date %in% days.sick.other] <- "sick_other"
   }
   
-  
   # holiday color 
   if(any(out$date %in% days.holidays)){
     out$color[out$date %in% days.holidays] <- "holiday"
   }
-  
   
   # normalize week numbers down to zero
   out$week_norm <- out$week - min(out$week) + 1
@@ -118,16 +120,45 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
   
   # replace non-current month
   out$mday2[out$month != unique(lubridate::month(v.dates))] <- "  "
-  # replace today 
+  
+  # replace today --
   #out$mday2[out$date == Sys.Date()] <- "xx"
-  out$mday2[out$date == Sys.Date()] <- emoji::moon(date = Sys.Date()) # replaces today with moon phase
+  #out$mday2[out$date == Sys.Date()] <- emoji::moon(date = Sys.Date()) # replaces today with moon phase
+  out$mday2[out$date == Sys.Date()] <- crayon::red(crayon::bold(mday(Sys.Date())))
+  out$mday2[out$date == Sys.Date()] <- crayon::underline(crayon::bold(ifelse(test = nchar(mday(Sys.Date())) == 2, 
+                                                                       yes  = as.character(mday(Sys.Date())), 
+                                                                       no   = paste("0", mday(Sys.Date()), sep = "", collapse = ""))))
+  
+  
+  
+  # replace birthday----
+  if(month(Sys.Date()) == 5){
+    out[out$month == 5 & out$mday == 13,]$mday2 <- "\U0001f382"
+  }
+  
+  # replace dental apt----
+  if(any(dentist.dates %in% out$date)){
+    out[out$date %in% dentist.dates,]$mday2 <- "\U0001f9b7"
+  }
+  
+  # replace doctor apt----
+  if(any(doctor.dates %in% out$date)){
+    out[out$date %in% doctor.dates,]$mday2 <- "\U0001fa7a"
+  }
+  
+  # replace anchor day----
+  if(month(Sys.Date()) %in% month(anchor.days)){
+    cur.anchor.date <- anchor.days[month(anchor.days)==month(Sys.Date())]
+    
+    out[out$date == cur.anchor.date,]$mday2 <- "⚓"
+  }
   
   #address colors 
   out$color[is.na(out$color)] <- "grey"
   out$mday2[out$color == "grey"] <- crayon::silver(out$mday2[out$color == "grey" & 
                                                                !is.na(out$color)])
   out$mday2[out$color == "in_office"] <- black(bgGreen(out$mday2[out$color == "in_office"]))
-  out$mday2[out$date == Sys.Date() ] <- bold(bold(out$mday2[out$date == Sys.Date() ]))
+  out$mday2[out$date == Sys.Date() ]  <- bold(bold(out$mday2[out$date == Sys.Date() ]))
   
   if(any(out$date %in% days.holidays)){
     out$mday2[out$color == "holiday"] <- blue(bgRed(out$mday2[out$color == "holiday"]))
@@ -140,7 +171,9 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
   }
   
   # remove formatting for days not in current month
-  out$mday2[strip_style(out$mday2) == "  "] <- strip_style(out$mday2[strip_style(out$mday2) == "  "])
+  out$mday2[strip_style(out$mday2) == "  " & 
+              out$date != Sys.Date()] <- strip_style(out$mday2[strip_style(out$mday2) == "  " & 
+                                                                 out$date != Sys.Date()])
   
   
   
@@ -159,7 +192,7 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
     
   }
   #legend <- glue("{italic(\"----// Calendar Legend //----\")}\n{(\"Today\t\t(bold 'xx')\")}\n{silver(\"Remote\t\t(light grey)\")}\n{bgGreen(red(\"In-Office\t(red on green)\"))}\n{white(bgRed(\"Vacation\t(white on red)\"))}\n{bgRed(blue(\"Holiday\t\t(blue on red)\"))}")
-  legend <- glue("{italic(\"--// Legend //--\")}\n  {bgGreen(black(\"- In-Office\t\"))}\n  {silver(\"- Remote\")}\n  {white(bgRed(\"- Vacation\t\"))}\n  {bgRed(blue(\"- Holiday\t\"))}\n  {bgCyan(black(\"- Sick/Other\t\"))}")
+  legend <- glue("{italic(\"--// Legend //--\")}\n  {bgGreen(black(\"- In-Office\t\"))}\n  {silver(\"- Remote\")}\n  {white(bgRed(\"- Vacation\t\"))}\n  {bgRed(blue(\"- Holiday\t\"))}\n  {bgCyan(black(\"- Sick/Other\t\"))}\n  -{emoji::emoji(\"tooth\")}/{emoji::emoji(\"stethoscope\")} Med Apt")
   output <- paste(output, 
                   sep = " ", collapse = " ") 
   output <- paste(output, legend, sep = "", collapse = "")
@@ -171,14 +204,24 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
 # Vars.dates----
 in_office.dates  <- ymd(c(20230215,20230216,20230217,20230222,20230223,20230224, 
                           20230301,20230302,20230308,20230309,20230316,20230331, 
-                          20230405,20230406,20230412,20230413,20230426,20230427))
+                          20230405,20230406,20230412,20230413,20230426, 
+                          20230508,20230516,20230524,20230525,20230526
+))
+
+dr.apt.dates     <- ymd(c(19810513))
+dental.apt.dates <- ymd(c(20230531))
+
+
 vaca.dates       <- ymd(c(20230327,20230328, 
                           20230622,20230623,
                           20230717,20230718,20230719,20230720,20230721))
 sick_other.dates <- ymd(c(19810513))
-holiday.dates    <- ymd(c(20230101, 20230116, 20230410, 20230529, 20230619, 
-                          20230704, 20230904, 20231123, 20231124, 20231225, 
+holiday.dates    <- ymd(c(20230101, 20230116, 20230410, 
+                          20230512, 20230529, 
+                          20230619, 20230704, 20230904, 
+                          20231123, 20231124, 20231225, 
                           20231226, 20231227))
+anchor.day.dates <- ymd(c(20230516))
 
 # holiday.dates   <- "New Year’s Day
 # Martin Luther King Jr. Birthday
@@ -189,18 +232,31 @@ holiday.dates    <- ymd(c(20230101, 20230116, 20230410, 20230529, 20230619,
 # Thanksgiving Day (2 Days)
 # Christmas Day (3 days) (or these 3 days may be used for Hanukkah or Yom Kippur)
 # Floating Holiday (Veteran’s Day, President’s Day, employee’s birthday, or other religious holiday)"
+# Juneteenth
+
 # vars.wellbeing----
+
+
 cur.wellbeing <- c("check-in with someone i haven't talked to in a while", 
-                   "praise someone for a recent win (or for nor reason at all)")
+                   "show interest and empathy in others",
+                   "Do 1 thing today that makes me happy",
+                   "take a walk")
 
 # Vars.projs----
-cur.projs <- data.frame(name = c("CODI - figure out why 1/3 people missing from dataset",
+cur.projs <- data.frame(name = c("DHHS - connect with Hayley and find out what next steps will be for project",
+                                 "Maryland Data Request Response", 
+                                 "Update Smartsheet (globally)",
                                  "BoS Dashboard", 
-                                 "Racial Equity Analysis Census Data Pull"), 
-                        due = (c(
-                          Sys.Date() %m+% days(1), 
-                          Sys.Date() %m+% days(0), 
-                          Sys.Date() %m+% days(1)))) %>%
+                                 #"Racial Equity Analysis - Census Data Pull",
+                                 "Racial Equity Analysis - StellaP Data Pull",
+                                 "Racial Equity Analysis - Data Exploration Charts"), 
+                        due = (c(Sys.Date() %m+% days(0), 
+                                 Sys.Date() %m+% days(0), 
+                                 Sys.Date() %m+% days(1), 
+                                 Sys.Date() %m+% days(1), 
+                                 #Sys.Date() %m+% days(0), 
+                                 Sys.Date() %m+% days(1), 
+                                 Sys.Date() %m+% days(1)))) %>%
   mutate(., 
          due = ifelse(is.na(due), Sys.Date(), due)) %>%
   mutate(., 
@@ -245,150 +301,27 @@ if(mday(Sys.Date()) %in% 6:14){
     .[order(.)]
 }
 
-
-
-
 # work location----
-
-
 work.location <- ifelse(Sys.Date() %in% in_office.dates, 
                         italic("Duraleigh Office"), italic("Home Office"))
-
-
 # moods----
 poss.mood <- c("smiley", "tada", "100", "thumbs up","trophy","handshake",   # basic good mood
                #"jack_o_lantern", zombie", "ghost", "skull_and_crossbones", # for halloween season
                #"fallen leaf",  "pumpkin", "turkey",                        # for autumn
                #"santa", "cold face",                                       # for winter
                "coffee",                                                    # good for when tired
+               "umbrella on ground", "mountain", 
                "gym","computer", "disk"  # generic
 ) 
 
 
-#emoji::day_in_synodic_cycle(Sys.Date())
-# names(emoji::emoji_name) %>%
-#   .[!grepl("_tone$|_hair$|_bald$", .)]
-
-set.seed(Sys.Date())
+#set.seed(Sys.Date())
 pm1 <- sample(poss.mood, size = 1)
-set.seed(Sys.Date())
+#set.seed(Sys.Date())
 emkw <- emoji_keyword[[pm1]] %>%
   .[sample(1:length(.), size = 1)]
 
 mood.var         <- emoji::emoji(emkw)
-
-# # how many hours of sunlight today? ----
-# srss.rdu <- suncalc::getSunlightTimes(date = Sys.Date(), 
-#                                       lat = 35.8801, 
-#                                       lon = -78.7880, 
-#                                       keep = c("sunrise", "sunset")) %>%
-#   .[,c("sunrise", "sunset")] 
-# 
-# sunlight.time <- srss.rdu$sunset - srss.rdu$sunrise
-# sunlight.hours <- as.numeric(sunlight.time) %>% as.integer()
-# sunlight.mins <- as.integer((as.numeric(sunlight.time) %% sunlight.hours)*60)
-# 
-# sunlight.time <- glue("{sunlight.hours} hrs and {sunlight.mins} minutes of daylight today")
-# 
-# # max and min daylight during year
-# 
-# df.daylight <- data.frame(date = as_date(ymd(20230101):ymd(20231231)), 
-#                           lon = -78.7880, 
-#                           lat = 35.8001) %>% as_tibble()
-# 
-# df.year <- getSunlightTimes(data = df.daylight, keep = c("sunrise", "sunset")) %>%
-#   as_tibble() %>%
-#   mutate(., 
-#          daylight = as.numeric(sunset - sunrise)) #%>%
-# #.[.$daylight == max(.$daylight) | 
-# #   .$daylight == min(.$daylight),]
-# 
-# df.year$sunrise <- df.year$sunrise %>% with_tz(., tzone = Sys.timezone())
-# df.year$sunset <- df.year$sunset %>% with_tz(., tzone = Sys.timezone())
-# 
-# 
-# df.year$sunrise_time
-# df.year$sunset_time 
-# 
-# df.year$work_start <- as_datetime(NA)
-# df.year$work_end   <- as_datetime(NA)
-# 
-# # saturdays, sundays, holidays, etc
-# df.year$work_start[lubridate::wday(df.year$date, label = T) %in% 
-#                      c("Sat", "Sun")] <- NA
-# df.year$work_end[lubridate::wday(df.year$date, label = T) %in% 
-#                    c("Sat", "Sun")]   <- NA
-# 
-# # in-office days (wed-thu)
-# df.year$work_start[lubridate::wday(df.year$date, label = T) %in% 
-#                      c("Wed", "Thu")] <- force_tz(df.year$date[lubridate::wday(df.year$date, label = T) %in% 
-#                                                                  c("Wed", "Thu")] %m+%
-#                                                     hours(6) %m+% minutes(30), 
-#                                                   tzone = Sys.timezone())
-# df.year$work_end[lubridate::wday(df.year$date, label = T) %in% 
-#                    c("Wed", "Thu")]   <- force_tz(df.year$date[lubridate::wday(df.year$date, label = T) %in% 
-#                                                                  c("Wed", "Thu")] %m+% 
-#                                                     hours(16) %m+% minutes(45), 
-#                                                   tzone = Sys.timezone())
-# 
-# # remote days (mon-tue-fri)
-# df.year$work_start[lubridate::wday(df.year$date, label = T) %in%
-#                      c("Mon", "Fri")] <- force_tz(df.year$date[lubridate::wday(df.year$date, label = T) %in% 
-#                                                                  c("Mon", "Fri")] %m+%
-#                                                     hours(7) , 
-#                                                   tzone = Sys.timezone())
-# df.year$work_end[lubridate::wday(df.year$date, label = T) %in% 
-#                    c("Mon", "Fri")]   <- force_tz(df.year$date[lubridate::wday(df.year$date, label = T) %in% 
-#                                                                  c("Mon","Fri")] %m+% 
-#                                                     hours(16) %m+% minutes(30), 
-#                                                   tzone = Sys.timezone())
-# 
-# df.year$work_start[lubridate::wday(df.year$date, label = T) %in%
-#                      c("Tue")] <- force_tz(df.year$date[lubridate::wday(df.year$date, label = T) %in% 
-#                                                           c("Tue")] %m+%
-#                                              hours(7) , 
-#                                            tzone = Sys.timezone())
-# df.year$work_end[lubridate::wday(df.year$date, label = T) %in% 
-#                    c("Tue")]   <- force_tz(df.year$date[lubridate::wday(df.year$date, label = T) %in% 
-#                                                           c("Tue")] %m+% 
-#                                              hours(14) , 
-#                                            tzone = Sys.timezone())
-# 
-# 
-# df.year$work_start <- df.year$work_start %>% with_tz(., tzone = Sys.timezone())
-# df.year$work_end   <- df.year$work_end   %>% with_tz(., tzone = Sys.timezone())
-# 
-# 
-# df.year$daylight_not_working <- NA
-# df.year$daylight_not_working[is.na(df.year$work_start)] <- df.year$daylight[is.na(df.year$work_start)]
-# 
-# 
-# df.year$daylight_not_working[!is.na(df.year$work_start)] <-
-#   (ifelse(((df.year$work_start[!is.na(df.year$work_start)] - df.year$sunrise[!is.na(df.year$work_start)]) / 60 / 60) >0, 
-#           (df.year$work_start[!is.na(df.year$work_start)] - df.year$sunrise[!is.na(df.year$work_start)]) / 60 / 60, 0)) +
-#   ifelse(((df.year$sunset[!is.na(df.year$work_start)] - df.year$work_end[!is.na(df.year$work_start)])/60/1) > 0, 
-#          ((df.year$sunset[!is.na(df.year$work_start)] - df.year$work_end[!is.na(df.year$work_start)])/60/1), 0) 
-# 
-# ggplot() + 
-#   geom_line(data = df.year, 
-#             aes(x = date, y = sunrise - as_datetime(as_date(sunrise)), 
-#                 color = "sunrise"))+
-#   geom_line(data = df.year, 
-#             aes(x = date, y = sunset - as_datetime(as_date(sunset)), 
-#                 color = "sunset")) +
-#   geom_vline(aes(xintercept = Sys.Date(), 
-#                  linetype = "Today"))
-# 
-# 
-# df.year %>%
-#   #group_by(month = lubridate::month(date,label = T)) %>%
-#   group_by(dow = lubridate::wday(date,label=T)) %>%
-#   summarise(n_days = n(), 
-#             t_daylight_hrs = sum(daylight), 
-#             t_dl.not.work = sum(daylight_not_working)) %>%
-#   ungroup() %>%
-#   mutate(., 
-#          pct_dl.not.work = t_dl.not.work / t_daylight_hrs)
 
 # tidy----
 accomplish.tasks <- accomplish.tasks %>%
