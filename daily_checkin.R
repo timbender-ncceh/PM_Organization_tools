@@ -205,11 +205,12 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
 in_office.dates  <- ymd(c(20230215,20230216,20230217,20230222,20230223,20230224, 
                           20230301,20230302,20230308,20230309,20230316,20230331, 
                           20230405,20230406,20230412,20230413,20230426, 
-                          20230508,20230516,20230524,20230525,20230526
+                          20230508,20230516,20230524,20230525, 
+                          20230607,20230615,20230616,20230621,20230629
 ))
 
 dr.apt.dates     <- ymd(c(19810513))
-dental.apt.dates <- ymd(c(20230531))
+dental.apt.dates <- ymd(c(19810513))#ymd(c(20230531))
 
 
 vaca.dates       <- ymd(c(20230327,20230328, 
@@ -222,6 +223,68 @@ holiday.dates    <- ymd(c(20230101, 20230116, 20230410,
                           20231123, 20231124, 20231225, 
                           20231226, 20231227))
 anchor.day.dates <- ymd(c(20230516))
+
+kids.camp <- ymd(c(20230612,20230613,20230614))
+
+abby_wfh <- function(xdate) {
+  require(lubridate)
+  ref_date <- ymd(20230607) %>% as.numeric()
+  
+  out <- as.numeric(xdate)
+  
+  out <- ((out %% ref_date)/14) == 1
+  return(out)
+}
+
+camp_pudo <- function(xdate, kcdates){
+  require(lubridate)
+  out.do <- NA
+  out.pu <- NA
+  
+  # monday
+  if(lubridate::wday(xdate,label = T) == "Mon"){
+    out.do <- "tim"
+    out.pu <- "tim"
+  }
+  # tuesday
+  if(lubridate::wday(xdate,label = T) == "Tue"){
+    out.do <- "tim"
+    out.pu <- "tim"
+  }
+  # thursday
+  if(lubridate::wday(xdate,label = T) == "Thu"){
+    out.do <- "tim"
+    out.pu <- "abby"
+  }
+  # friday
+  if(lubridate::wday(xdate,label = T) == "Fri"){
+    out.do <- "abby"
+    out.pu <- "abby"
+  }
+  # wednesday_Awfh
+  if(lubridate::wday(xdate,label = T) == "Wed" & abby_wfh(xdate)){
+    out.do <- "tim"
+    out.pu <- "abby"
+  }
+  # wednesday_Awfh
+  if(lubridate::wday(xdate,label = T) == "Wed" & !abby_wfh(xdate)){
+    out.do <- "tim"
+    out.pu <- "abby"
+  }
+  
+  out <- data.frame(date = xdate, 
+                    dow = wday(xdate, label = T), 
+                    drop_off = out.do, 
+                    pickup = out.pu)
+  
+  return(out)
+  
+}
+
+camp_pudo(ymd(20230622))
+
+abby_wfh(ymd(20230621))
+
 
 # holiday.dates   <- "New Year’s Day
 # Martin Luther King Jr. Birthday
@@ -237,25 +300,27 @@ anchor.day.dates <- ymd(c(20230516))
 # vars.wellbeing----
 
 
-cur.wellbeing <- c("check-in with someone i haven't talked to in a while", 
+cur.wellbeing <- c(#"check-in with someone i haven't talked to in a while", 
                    "show interest and empathy in others",
+                   "be kind to myself", 
                    "Do 1 thing today that makes me happy",
-                   "take a walk")
+                   "take a walk", 
+                   "identify a personal asset")
 
 # Vars.projs----
-cur.projs <- data.frame(name = c("DHHS - connect with Hayley and find out what next steps will be for project",
-                                 "Maryland Data Request Response", 
-                                 "Update Smartsheet (globally)",
-                                 "BoS Dashboard", 
-                                 #"Racial Equity Analysis - Census Data Pull",
-                                 "Racial Equity Analysis - StellaP Data Pull",
-                                 "Racial Equity Analysis - Data Exploration Charts"), 
-                        due = (c(Sys.Date() %m+% days(0), 
+cur.projs <- data.frame(name = c("figure out my 6 office days for June", 
+                                 "update summer calendar with kids' camp dates and ooo impacts", 
+                                 "vaccination data",
+                                 "BoS Dashboard - finish", 
+                                 "BO Report QA", 
+                                 #"calendaring", 
+                                 "codi flow fixes"), 
+                        due = (c(Sys.Date() %m+% days(0),
+                                 Sys.Date() %m+% days(0),
                                  Sys.Date() %m+% days(0), 
                                  Sys.Date() %m+% days(1), 
-                                 Sys.Date() %m+% days(1), 
-                                 #Sys.Date() %m+% days(0), 
-                                 Sys.Date() %m+% days(1), 
+                                 Sys.Date() %m+% days(1),
+                                 #Sys.Date() %m+% days(0),
                                  Sys.Date() %m+% days(1)))) %>%
   mutate(., 
          due = ifelse(is.na(due), Sys.Date(), due)) %>%
@@ -314,7 +379,6 @@ poss.mood <- c("smiley", "tada", "100", "thumbs up","trophy","handshake",   # ba
                "gym","computer", "disk"  # generic
 ) 
 
-
 #set.seed(Sys.Date())
 pm1 <- sample(poss.mood, size = 1)
 #set.seed(Sys.Date())
@@ -322,6 +386,16 @@ emkw <- emoji_keyword[[pm1]] %>%
   .[sample(1:length(.), size = 1)]
 
 mood.var         <- emoji::emoji(emkw)
+# overwrite mood vvvv
+#mood.var <- glue("{emoji(\"car\")}+{emoji(\"police\")}={emoji(\"money_with_wings\")}" )
+
+emojis[grepl("cloud", emojis$name),]$group %>% unique
+
+for(i in 1:length(emojis[emojis$group == "Travel & Places",]$name)){
+  print(i)
+  cat(emojis$emoji[i])
+}
+
 
 # tidy----
 accomplish.tasks <- accomplish.tasks %>%
