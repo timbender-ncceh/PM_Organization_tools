@@ -126,8 +126,8 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
   #out$mday2[out$date == Sys.Date()] <- emoji::moon(date = Sys.Date()) # replaces today with moon phase
   out$mday2[out$date == Sys.Date()] <- crayon::red(crayon::bold(mday(Sys.Date())))
   out$mday2[out$date == Sys.Date()] <- crayon::underline(crayon::bold(ifelse(test = nchar(mday(Sys.Date())) == 2, 
-                                                                       yes  = as.character(mday(Sys.Date())), 
-                                                                       no   = paste("0", mday(Sys.Date()), sep = "", collapse = ""))))
+                                                                             yes  = as.character(mday(Sys.Date())), 
+                                                                             no   = paste("0", mday(Sys.Date()), sep = "", collapse = ""))))
   
   
   
@@ -192,21 +192,20 @@ summarise_mdays <- function(v.dates = get.dates_in.month(Sys.Date()),
     
   }
   #legend <- glue("{italic(\"----// Calendar Legend //----\")}\n{(\"Today\t\t(bold 'xx')\")}\n{silver(\"Remote\t\t(light grey)\")}\n{bgGreen(red(\"In-Office\t(red on green)\"))}\n{white(bgRed(\"Vacation\t(white on red)\"))}\n{bgRed(blue(\"Holiday\t\t(blue on red)\"))}")
-  legend <- glue("{italic(\"--// Legend //--\")}\n  {bgGreen(black(\"- In-Office\t\"))}\n  {silver(\"- Remote\")}\n  {white(bgRed(\"- Vacation\t\"))}\n  {bgRed(blue(\"- Holiday\t\"))}\n  {bgCyan(black(\"- Sick/Other\t\"))}\n  -{emoji::emoji(\"tooth\")}/{emoji::emoji(\"stethoscope\")} Med Apt")
+  #legend <- glue("{italic(\"--// Legend //--\")}\n  {bgGreen(black(\"- In-Office\t\"))}\n  {silver(\"- Remote\")}\n  {white(bgRed(\"- Vacation\t\"))}\n  {bgRed(blue(\"- Holiday\t\"))}\n  {bgCyan(black(\"- Sick/Other\t\"))}\n  -{emoji::emoji(\"tooth\")}/{emoji::emoji(\"stethoscope\")} Med Apt")
+  legend <- glue("{italic(\"--// Legend //--\")}\n  {white(bgRed(\"- Vacation\t\"))}\n  {bgRed(blue(\"- Holiday\t\"))}\n  {bgCyan(black(\"- Sick/Other\t\"))}\n  -{emoji::emoji(\"tooth\")}/{emoji::emoji(\"stethoscope\")} Med Apt")
   output <- paste(output, 
                   sep = " ", collapse = " ") 
   output <- paste(output, legend, sep = "", collapse = "")
   return(output)
 }
 
-
-
 # Vars.dates----
 in_office.dates  <- ymd(c(20230215,20230216,20230217,20230222,20230223,20230224, 
                           20230301,20230302,20230308,20230309,20230316,20230331, 
                           20230405,20230406,20230412,20230413,20230426, 
                           20230508,20230516,20230524,20230525, 
-                          20230607,20230615,20230616,20230621,20230629
+                          20230607,20230628#,#20230629
 ))
 
 dr.apt.dates     <- ymd(c(19810513))
@@ -226,13 +225,15 @@ anchor.day.dates <- ymd(c(20230516))
 
 kids.camp <- ymd(c(20230612,20230613,20230614))
 
+#xdate <- ymd(20230712)
+
 abby_wfh <- function(xdate) {
   require(lubridate)
   ref_date <- ymd(20230607) %>% as.numeric()
   
   out <- as.numeric(xdate)
   
-  out <- ((out %% ref_date)/14) == 1
+  out <- ((out %% ref_date)/14) == as.integer((out %% ref_date)/14)
   return(out)
 }
 
@@ -244,7 +245,7 @@ camp_pudo <- function(xdate, kcdates){
   # monday
   if(lubridate::wday(xdate,label = T) == "Mon"){
     out.do <- "tim"
-    out.pu <- "tim"
+    out.pu <- "abby"
   }
   # tuesday
   if(lubridate::wday(xdate,label = T) == "Tue"){
@@ -263,7 +264,7 @@ camp_pudo <- function(xdate, kcdates){
   }
   # wednesday_Awfh
   if(lubridate::wday(xdate,label = T) == "Wed" & abby_wfh(xdate)){
-    out.do <- "tim"
+    out.do <- "abby"
     out.pu <- "abby"
   }
   # wednesday_Awfh
@@ -273,7 +274,7 @@ camp_pudo <- function(xdate, kcdates){
   }
   
   out <- data.frame(date = xdate, 
-                    dow = wday(xdate, label = T), 
+                    dow = lubridate::wday(xdate, label = T), 
                     drop_off = out.do, 
                     pickup = out.pu)
   
@@ -281,9 +282,18 @@ camp_pudo <- function(xdate, kcdates){
   
 }
 
-camp_pudo(ymd(20230622))
 
-abby_wfh(ymd(20230621))
+increment.week <- 1
+
+camp_pudo(ymd(20230807) %m+% weeks(increment.week))
+camp_pudo(ymd(20230808) %m+% weeks(increment.week))
+camp_pudo(ymd(20230809) %m+% weeks(increment.week))
+camp_pudo(ymd(20230810) %m+% weeks(increment.week))
+camp_pudo(ymd(20230811) %m+% weeks(increment.week))
+
+
+
+
 
 
 # holiday.dates   <- "New Year’s Day
@@ -301,27 +311,35 @@ abby_wfh(ymd(20230621))
 
 
 cur.wellbeing <- c(#"check-in with someone i haven't talked to in a while", 
-                   "show interest and empathy in others",
-                   "be kind to myself", 
-                   "Do 1 thing today that makes me happy",
-                   "take a walk", 
-                   "identify a personal asset")
+  "show interest and empathy in others",
+  "be kind to myself", 
+  "Do 1 thing today that makes me happy",
+  "take a walk", 
+  "identify a personal asset")
 
 # Vars.projs----
-cur.projs <- data.frame(name = c("figure out my 6 office days for June", 
-                                 "update summer calendar with kids' camp dates and ooo impacts", 
-                                 "vaccination data",
-                                 "BoS Dashboard - finish", 
-                                 "BO Report QA", 
-                                 #"calendaring", 
-                                 "codi flow fixes"), 
-                        due = (c(Sys.Date() %m+% days(0),
-                                 Sys.Date() %m+% days(0),
-                                 Sys.Date() %m+% days(0), 
-                                 Sys.Date() %m+% days(1), 
-                                 Sys.Date() %m+% days(1),
-                                 #Sys.Date() %m+% days(0),
-                                 Sys.Date() %m+% days(1)))) %>%
+
+#pip stuff, 
+cur.projs <- data.frame(name = c(#"plan next week's workblocks", 
+                                 "A09 & A10 Reports QA",
+                                 "DHHS: follow up again with team re: next project", 
+                                 "BoS Dashboard - capture data universe", 
+                                 "REA - Double-check potential data quality issue",
+                                 "zendesk question",
+                                 "file Census Data from REA analysis"
+                                 #"BO Report QA",
+                                 #"read Mecklenburg Co blog posts"
+                                 ), 
+                        due  = (c(#Sys.Date() %m+% days(0), 
+                                  Sys.Date() %m+% days(0),
+                                  Sys.Date() %m+% days(1),
+                                  Sys.Date() %m+% days(0), 
+                                  Sys.Date() %m+% days(0),
+                                  Sys.Date() %m+% days(0), 
+                                  Sys.Date() %m+% days(0)
+                                  #Sys.Date() %m+% days(1),
+                                  #Sys.Date() %m+% days(1)
+                        ))) %>%
   mutate(., 
          due = ifelse(is.na(due), Sys.Date(), due)) %>%
   mutate(., 
@@ -349,22 +367,22 @@ if(wday(Sys.Date()) == 3){
                         "weekly check-in with andrea") %>% unique() %>% 
     .[order(.)]
 }
-if(mday(Sys.Date()) %in% 1:5){
-  progress.tasks <- c(progress.tasks, 
-                      "vaccination data upload") %>%
-    unique() %>%
-    .[order(.)]
-}
 
-
-if(mday(Sys.Date()) %in% 6:14){
-  library(crayon)
-  cat(bgCyan("expect email back from DHS by the 13th re: vaccination upload\n\n"));Sys.sleep(5)
-  progress.tasks <- c(progress.tasks, 
-                      "DHHS vaccination report download and distribution to partners") %>%
-    unique() %>%
-    .[order(.)]
-}
+# # vacction data upload----
+# if(mday(Sys.Date()) %in% 1:5){
+#   progress.tasks <- c(progress.tasks, 
+#                       "vaccination data upload") %>%
+#     unique() %>%
+#     .[order(.)]
+# }
+# if(mday(Sys.Date()) %in% 6:14){
+#   library(crayon)
+#   cat(bgCyan("expect email back from DHS by the 13th re: vaccination upload\n\n"));Sys.sleep(5)
+#   progress.tasks <- c(progress.tasks, 
+#                       "DHHS vaccination report download and distribution to partners") %>%
+#     unique() %>%
+#     .[order(.)]
+# }
 
 # work location----
 work.location <- ifelse(Sys.Date() %in% in_office.dates, 
@@ -417,4 +435,3 @@ template <- glue("\n\nTO:\tstaff@ncceh.org\nFROM:\tTim\nSUBJ:\t[staff] {strftime
 cat('\f')
 cat(template,"\n",summarise_mdays(v.dates = get.dates_in.month(Sys.Date()), 
                                   days.in.office = in_office.dates))
-
